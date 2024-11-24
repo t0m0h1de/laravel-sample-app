@@ -1,0 +1,60 @@
+version: '3'
+services:
+  db:
+    image: docker.io/mariadb:10.6-ubi9
+    container_name: mariadb
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: mariadb_test_db
+      MARIADB_USER: admin
+      MARIADB_PASSWORD: secret
+      TZ: "Asia/Tokyo"
+    ports:
+      - 3306:3306
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mariadb/conf.d:/etc/mysql/conf.d
+      - ./docker/mariadb/initdb.d:/docker-entrypoint-initdb.d
+  php:
+    build: ./docker/php
+    container_name: php-fpm
+    volumes:
+      - ./src:/var/www
+
+  nginx:
+    image: docker.io/nginx:latest
+    container_name: nginx
+    ports:
+      - 8080:8080
+    volumes:
+      - ./src:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php
+
+  phpmyadmin:
+    image: docker.io/phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin
+    environment:
+      - PMA_ARBITARY=1
+      - PMA_HOST=db
+      - PMA_USER=admin
+      - PMA_PASSWORD=secret
+    links:
+      - db
+    ports:
+      - 8081:80
+    
+  node:
+    image: docker.io/node:14.18
+    container_name: node14.18
+    tty: true
+    volumes:
+      - ./src:/var/www
+    working_dir: /var/www
+
+volumes:
+  db_data:
+  db_my_cnf:
+  db_sql:
